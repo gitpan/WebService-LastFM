@@ -1,7 +1,7 @@
 #!perl
 #
 # This example demonstrates controlling the Last.FM stream
-# using WebService::LastFM.
+# by using WebService::LastFM.
 #
 # Win32::OLE and iTunes is required to execute this sctipt.
 #
@@ -28,7 +28,7 @@ die "$@\n" if $@;
 
 # create an iTunes object, then add the stream url to its playlist
 my $itunes = my $itunes = Win32::OLE->new("iTunes.Application");
-my $stream = $itunes->LibraryPlaylist->AddURL($stream_info->{stream_url});
+my $stream = $itunes->LibraryPlaylist->AddURL($stream_info->stream_url);
 
 $stream->play;
 
@@ -40,7 +40,11 @@ while (<>) {
 	# fetch now playing song
 	if ($_ eq 'get') {
 		my $current_track = $ctrl->get_nowplaying;
-		print $current_track->artist.': '.$current_track->track."\n";
+		if ($current_track->streaming eq 'false') {
+			print "No track info now\n";
+		} else {
+			print $current_track->artist.': '.$current_track->track."\n";
+		}
 	}
 
 	# change station

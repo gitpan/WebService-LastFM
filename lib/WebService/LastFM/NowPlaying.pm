@@ -5,7 +5,7 @@ use warnings;
 
 use base qw(Class::Accessor);
 
-our $VERSION = '0.01';
+our $VERSION = '0.02';
 
 __PACKAGE__->mk_accessors(qw(
 	streaming
@@ -29,17 +29,8 @@ __PACKAGE__->mk_accessors(qw(
 ));
 
 sub new {
-	my ($class, $content) = @_;
-	my $self = bless {}, $class;
-	$self->_fetch_nowplaying_info($content);
-	return $self;
-}
-
-sub _fetch_nowplaying_info {
-	my ($self, $content) = @_;
-	$self->{$1} = $2
-		while ($content =~ s/^(.+?)\s*=\s*(.+?)$//m);
-	return;
+	my ($class, $args) = @_;
+	bless $args, $class;
 }
 
 1;

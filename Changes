@@ -1,4 +1,8 @@
 Revision history for Perl extension WebService::LastFM.
 
+0.02  Mon Jan 17 2005
+        - add WebService::LastFM::Session
+          now WebService::LastFM::get_session returns a WebService::LastFM::Session object not hashref
+
 0.01  Sat Jan 15 2005
         - initial release
