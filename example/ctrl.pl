@@ -48,7 +48,7 @@ while (<>) {
 	}
 
 	# change station
-	# mode: personal, profile or random
+	# mode: 'personal', 'profile' or 'random'
 	elsif ($_ =~ /change\s+(.+)/) {
 		my $response;
 		eval { $response = $ctrl->change_station($1) };
@@ -67,7 +67,7 @@ while (<>) {
 	}
 
 	# send a command
-	# command: skip, love or ban
+	# command: 'skip', 'love', 'ban', 'rtp' or 'nortp'
 	else {
 		my $response;
 		eval { $response = $ctrl->send_command($_) };

@@ -6,11 +6,12 @@ use warnings;
 use Carp ();
 use Digest::MD5 ();
 use LWP::UserAgent;
+use HTTP::Request::Common qw(POST GET);
 
 use WebService::LastFM::Session;
 use WebService::LastFM::NowPlaying;
 
-our $VERSION = '0.02';
+our $VERSION = '0.03';
 
 sub new {
 	my ($class, %args) = @_;
@@ -36,10 +37,10 @@ sub get_session {
 	my $url = 'http://wsdev.audioscrobbler.com/radio/getsession.php'
 	          .'?username='   .$self->{username}
 	          .'&passwordmd5='.Digest::MD5::md5_hex($self->{password});
-	$url   .= '&mode='        .$mode
+	   $url.= '&mode='        .$mode
 	          .'&subject='    .$self->{username} if $mode;
 
-	my $response = $self->_get_response($url);
+	my $response = $self->_get_response(GET $url);
 
 	$self->_die('Wrong params passed')
 		if !(keys %$response) || $response->{session} eq 'FAILED';
@@ -53,7 +54,7 @@ sub get_nowplaying {
 	my $url = 'http://wsdev.audioscrobbler.com/radio/np.php'
 	          .'?session='.$self->{session};
 
-	my $response = $self->_get_response($url);
+	my $response = $self->_get_response(GET $url);
 	return WebService::LastFM::NowPlaying->new($response);
 }
 
@@ -61,11 +62,13 @@ sub send_command {
 	my ($self, $command) = @_;
 	$self->_die('Command not passed') unless $command;
 
-	my $url = 'http://wsdev.audioscrobbler.com/radio/control.php'
-	          .'?session='.$self->{session}
-	          .'&command='.$command;
+	my $request = POST 'http://wsdev.audioscrobbler.com/radio/control.php',
+	                   [
+	                   	session => $self->{session},
+	                   	command => $command,
+	                   ];
 
-	my $response  = $self->_get_response($url);
+	my $response  = $self->_get_response($request);
 	return $response->{response};
 }
 
@@ -73,18 +76,20 @@ sub change_station {
 	my ($self, $mode) = @_;
 	$self->_die('Mode not passed') unless $mode;
 
-	my $url = 'http://wsdev.audioscrobbler.com/radio/tune.php'
-	          .'?session='.$self->{session}
-	          .'&mode='   .$mode
-	          .'&subject='.$self->{username};
+	my $request = POST 'http://wsdev.audioscrobbler.com/radio/tune.php',
+	                   [
+	                   	session => $self->{session},
+	                   	mode    => $mode,
+	                   	subject => $self->{username},
+	                   ];
 
-	my $response  = $self->_get_response($url);
+	my $response  = $self->_get_response($request);
 	return $response->{response};
 }
 
 sub _get_response {
-	my ($self, $url) = @_;
-	my $content  = $self->_do_request($url);
+	my ($self, $request) = @_;
+	my $content  = $self->_do_request($request);
 	my $response = $self->_parse_response($content);
 	return $response;
 }
@@ -100,10 +105,10 @@ sub _parse_response {
 }
 
 sub _do_request {
-	my ($self, $url) = @_;
-	my $response = $self->ua->get($url);
+	my ($self, $request) = @_;
+	my $response = $self->ua->simple_request($request);
 
-	$self->_die('request faild: '.$response->message)
+	$self->_die('Request failed: '.$response->message)
 		unless $response->is_success;
 
 	return $response->content;
@@ -198,7 +203,7 @@ Returns a WebService::LastFM::NowPlaying object to retrieve the currently playin
 
   $response = $lastfm->send_command($command);
 
-Sends a command to Last.FM Stream API to control currently playing song. The command can be one of 'I<skip>', 'I<love>' or 'I<ban>'.
+Sends a command to Last.FM Stream API to control currently playing song. The command can be one of 'I<skip>', 'I<love>', 'I<ban>', I<rtp> or I<nortp>.
 
 I<$response> you get after issuing a command will be whether 'OK' or 'FAILED'.
 
@@ -220,7 +225,9 @@ Returns a LWP::UserAgent object. You can set some values to change its propaties
 
 =head1 CAVEAT
 
-WebService::LastFM is in beta version. Besides, Last.FM Webservices API's spec haven't fixed yet, so the interface it provides may be changed later.
+WebService::LastFM is in beta version. Besides, Last.FM Webservices API's spec haven't fixed yet (its status is now in B<EXPERIMENTAL>), so the interface it provides may be changed later. Then you must notice that the endpoint's host of LastFM Webservices API will be changed to 'ws.audioscrobbler.com' from 'wsdev.audioscrobbler.com' after its starting officially.
+
+See L<http://www.audioscrobbler.com/forum/14868> for the newest information of Last.FM Webservices.
 
 =head1 SEE ALSO
 

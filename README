@@ -1,4 +1,4 @@
-WebService-LastFM version 0.02
+WebService-LastFM version 0.03
 ==============================
 
 DESCRIPTION
@@ -7,7 +7,9 @@ WebService::LastFM provides you a simple interface to Last.FM Webservices API. I
 
 CAVEAT
 
-WebService::LastFM is in beta version. Besides, Last.FM Webservices API's spec haven't fixed yet, so the interface it provides may be changed later.
+WebService::LastFM is in beta version. Besides, Last.FM Webservices API's spec haven't fixed yet (its status is now in EXPERIMENTAL), so the interface it provides may be changed later. Then you must notice that the endpoint's host of LastFM Webservices API will be changed to 'ws.audioscrobbler.com' from 'wsdev.audioscrobbler.com' after its starting officially.
+
+See http://www.audioscrobbler.com/forum/14868 for the newest information of Last.FM Webservices.
 
 INSTALLATION
 
@@ -22,7 +24,7 @@ DEPENDENCIES
 
 This module requires these other modules and libraries:
 
-  - LWP::UserAgent
+  - LWP
   - Digest::MD5
   - Class::Accessor
 
