@@ -1,0 +1,9 @@
+Changes
+Makefile.PL
+MANIFEST
+README
+t/00_compile.t
+lib/WebService/LastFM.pm
+lib/WebService/LastFM/NowPlaying.pm
+example/ctrl.pl
+META.yml                                 Module meta-data (added by MakeMaker)
