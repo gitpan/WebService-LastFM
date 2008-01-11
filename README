@@ -3,13 +3,14 @@ WebService-LastFM version 0.03
 
 DESCRIPTION
 
-WebService::LastFM provides you a simple interface to Last.FM Webservices API. It currently supports Last.FM Stream API. See http://www.audioscrobbler.com/development/lastfm-ws.php for details.
+WebService::LastFM provides you a simple interface to Last.FM Web
+service API. It currently supports Last.FM Stream API.
 
 CAVEAT
 
-WebService::LastFM is in beta version. Besides, Last.FM Webservices API's spec haven't fixed yet (its status is now in EXPERIMENTAL), so the interface it provides may be changed later. Then you must notice that the endpoint's host of LastFM Webservices API will be changed to 'ws.audioscrobbler.com' from 'wsdev.audioscrobbler.com' after its starting officially.
-
-See http://www.audioscrobbler.com/forum/14868 for the newest information of Last.FM Webservices.
+WebServices::LastFM is now obsolete and doesn't cover all over the API
+which Last.fm offers. If you'd like to take over it from me to work on
+implementing, please give me a line, I'll let you have it.
 
 INSTALLATION
 
@@ -32,7 +33,7 @@ COPYRIGHT AND LICENCE
 
 Put the correct copyright and licence information here.
 
-Copyright (C) 2005 by Kentaro Kuribayashi, <kentarok@gmail.com>
+Copyright (C) 2005 - 2008 by Kentaro Kuribayashi
 
 This library is free software; you can redistribute it and/or modify
 it under the same terms as Perl itself.

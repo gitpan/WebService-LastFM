@@ -11,112 +11,107 @@ use HTTP::Request::Common qw(POST GET);
 use WebService::LastFM::Session;
 use WebService::LastFM::NowPlaying;
 
-our $VERSION = '0.03';
+our $VERSION = '0.04';
 
 sub new {
-	my ($class, %args) = @_;
-	my $self = bless {}, $class;
+    my ($class, %args) = @_;
+    my $self = bless {}, $class;
 
-	$self->_die('Username and password are required')
-		unless $args{username} || $args{password};
+    $self->_die('Username and password are required')
+        unless $args{username} || $args{password};
 
-	$self->{username} = $args{username};
-	$self->{password} = $args{password};
-	$self->{ua} = LWP::UserAgent->new(
-		agent   => "WebService::LastFM/$VERSION",
-	);
+    $self->{username} = $args{username};
+    $self->{password} = $args{password};
+    $self->{ua} = LWP::UserAgent->new(
+        agent   => "WebService::LastFM/$VERSION",
+    );
 
-	return $self;
+    return $self;
 }
 
 sub ua { $_[0]->{ua} }
 
 sub get_session {
-	my ($self, $mode) = @_;
+    my $self = shift;
 
-	my $url = 'http://wsdev.audioscrobbler.com/radio/getsession.php'
-	          .'?username='   .$self->{username}
-	          .'&passwordmd5='.Digest::MD5::md5_hex($self->{password});
-	   $url.= '&mode='        .$mode
-	          .'&subject='    .$self->{username} if $mode;
+    my $url = 'http://ws.audioscrobbler.com/radio/handshake.php'.
+              '?username='   .$self->{username}.
+              '&version= '   ."1.1.1".
+              '&platform= '  ."linux".
+              '&passwordmd5='.Digest::MD5::md5_hex($self->{password});
 
-	my $response = $self->_get_response(GET $url);
+    my $response = $self->_get_response(GET $url);
 
-	$self->_die('Wrong params passed')
-		if !(keys %$response) || $response->{session} eq 'FAILED';
+    $self->_die('Wrong params passed')
+        if !(keys %$response) || $response->{session} eq 'FAILED';
 
-	%$self = (%$self, %$response);
-	return WebService::LastFM::Session->new($response);
+    %$self = (%$self, %$response);
+    return WebService::LastFM::Session->new($response);
 }
 
 sub get_nowplaying {
-	my $self = shift;
-	my $url = 'http://wsdev.audioscrobbler.com/radio/np.php'
-	          .'?session='.$self->{session};
+    my $self = shift;
+    my $url = 'http://ws.audioscrobbler.com/radio/np.php'
+        .'?session='.$self->{session};
 
-	my $response = $self->_get_response(GET $url);
-	return WebService::LastFM::NowPlaying->new($response);
+    my $response = $self->_get_response(GET $url);
+    return WebService::LastFM::NowPlaying->new($response);
 }
 
 sub send_command {
-	my ($self, $command) = @_;
-	$self->_die('Command not passed') unless $command;
+    my ($self, $command) = @_;
+    $self->_die('Command not passed') unless $command;
 
-	my $request = POST 'http://wsdev.audioscrobbler.com/radio/control.php',
-	                   [
-	                   	session => $self->{session},
-	                   	command => $command,
-	                   ];
+    my $url = 'http://ws.audioscrobbler.com/radio/control.php'.
+              '?session='.$self->{session}.
+              '&command='.$command;
 
-	my $response  = $self->_get_response($request);
-	return $response->{response};
+    my $response = $self->_get_response(GET $url);
+    return $response->{response};
 }
 
 sub change_station {
-	my ($self, $mode) = @_;
-	$self->_die('Mode not passed') unless $mode;
+    my ($self, $user) = @_;
+    $self->_die('URL not passed') unless $user;
 
-	my $request = POST 'http://wsdev.audioscrobbler.com/radio/tune.php',
-	                   [
-	                   	session => $self->{session},
-	                   	mode    => $mode,
-	                   	subject => $self->{username},
-	                   ];
+    my $url = 'http://ws.audioscrobbler.com/radio/adjust.php'.
+              '?session='.$self->{session}.
+              '&url='    ."user/$user/personal";
 
-	my $response  = $self->_get_response($request);
-	return $response->{response};
+    my $response = $self->_get_response(GET $url);
+    return $response->{response};
 }
 
 sub _get_response {
-	my ($self, $request) = @_;
-	my $content  = $self->_do_request($request);
-	my $response = $self->_parse_response($content);
-	return $response;
+    my ($self, $request) = @_;
+    my $content  = $self->_do_request($request);
+    my $response = $self->_parse_response($content);
+    return $response;
 }
 
 sub _parse_response {
-	my ($self, $content) = @_;
-	my $response = {};
+    my ($self, $content) = @_;
+    my $response = {};
 
-	$response->{$1} = $2
-		while ($content =~ s/^(.+?)\s*=\s*(.+?)$//m);
+    $response->{$1} = $2
+        while ($content =~ s/^(.+?) *= *(.*)$//m);
 
-	return $response;
+    return $response;
 }
 
 sub _do_request {
-	my ($self, $request) = @_;
-	my $response = $self->ua->simple_request($request);
+    my ($self, $request) = @_;
+    my $response = $self->ua->simple_request($request);
 
-	$self->_die('Request failed: '.$response->message)
-		unless $response->is_success;
+    $self->_die('Request failed: '.$response->message)
+        unless $response->is_success;
 
-	return $response->content;
+    return $response->content;
 }
 
 sub _die {
-	my ($self, $message) = @_;
-	Carp::croak($message);
+    my ($self, $message) = @_;
+    Carp::croak($message);
 }
 
 1;
@@ -125,7 +120,7 @@ __END__
 
 =head1 NAME
 
-WebService::LastFM - Simple interfece to Last.FM Webservices API
+WebService::LastFM - Simple interface to Last.FM Web service API
 
 =head1 SYNOPSIS
 
@@ -137,42 +132,52 @@ WebService::LastFM - Simple interfece to Last.FM Webservices API
   );
 
   # get a sessoin key and stream URL to identify your stream
-  my $stream_info = $lastfm->get_session($mode);
-
+  my $stream_info = $lastfm->get_session;
   my $session_key = $stream_info->session;
   my $stream_url  = $stream_info->stream_url;
 
   # get the song information you are now listening
   my $nowplaying = $lastfm->get_nowplaying;
 
-  my $streaming         = $nowplaying->streaming;
-  my $station           = $nowplaying->station;
-  my $station_url       = $nowplaying->station_url;
-  my $stationfeed       = $nowplaying->stationfeed;
-  my $stationfeed_url   = $nowplaying->stationfeed_url;
-  my $artist            = $nowplaying->artist;
-  my $artist_url        = $nowplaying->artist_url;
-  my $track             = $nowplaying->track;
-  my $track_url         = $nowplaying->track_url;
-  my $album             = $nowplaying->album;
-  my $album_url         = $nowplaying->album_url;
-  my $albumcover_small  = $nowplaying->albumcover_small;
-  my $albumcover_medium = $nowplaying->albumcover_medium;
-  my $albumcover_large  = $nowplaying->albumcover_large;
-  my $trackduration     = $nowplaying->trackduration;
-  my $trackprogress     = $nowplaying->trackprogress;
-  my $radiomode         = $nowplaying->radiomode;
-  my $recordtoprofile   = $nowplaying->recordtoprofile;
+  for (qw(
+      price
+      shopname
+      clickthrulink
+      streaming
+      discovery
+      station
+      artist
+      artist_url
+      track
+      track_url
+      album
+      album_url
+      albumcover_small
+      albumcover_medium
+      albumcover_large
+      trackduration
+      radiomode
+      recordtoprofile
+  )){
+      print $nowplaying->$_;
+  }
 
-  # send a command 
+  # send a command
   $lastfm->send_command($command);
 
   # change the station
-  $lastfm->change_station($new_mode);
+  $lastfm->change_station($friend);
 
 =head1 DESCRIPTION
 
-WebService::LastFM provides you a simple interface to Last.FM Webservices API. It currently supports Last.FM Stream API. See L<http://www.audioscrobbler.com/development/lastfm-ws.php> for details.
+WebService::LastFM provides you a simple interface to Last.FM Web
+service API. It currently supports Last.FM Stream API.
+
+=head1 CAVEAT
+
+WebServices::LastFM is now obsolete and doesn't cover all over the API
+which Last.fm offers. If you'd like to take over it from me to work on
+implementing, please give me a line, I'll let you have it.
 
 =head1 METHODS
 
@@ -187,47 +192,49 @@ WebService::LastFM provides you a simple interface to Last.FM Webservices API. I
 
 Creates and returns a new WebService::LastFM object.
 
-=item get_session([I<$mode>])
+=item get_session()
 
-  $stream_info = $lastfm->get_session($mode);
+  $stream_info = $lastfm->get_session;
 
-Retruns a session key and stream URL as a WebService::LastFM::Session object. Setting optional I<$mode> parameter allows you to start the stream on a particular station. (The default is your own profile radio station)
+Returns a session key and stream URL as a WebService::LastFM::Session
+object.
 
-=item get_nowplaying
+=item get_nowplaying()
 
   $current_song = $lastfm->get_nowplaying;
 
-Returns a WebService::LastFM::NowPlaying object to retrieve the currently playing song's information.
+Returns a WebService::LastFM::NowPlaying object to retrieve the
+information of the song you're now listening.
 
 =item send_command(I<$command>)
 
   $response = $lastfm->send_command($command);
 
-Sends a command to Last.FM Stream API to control currently playing song. The command can be one of 'I<skip>', 'I<love>', 'I<ban>', I<rtp> or I<nortp>.
+Sends a command to Last.FM Stream API to control the
+streaming. C<$command> can be one of the follows: I<skip>, I<love>,
+I<ban>, I<rtp>, or I<nortp>.
 
-I<$response> you get after issuing a command will be whether 'OK' or 'FAILED'.
+I<$response> which you'll get after issuing a command will be either
+'OK' or 'FAILED' as a string.
 
-=item change_station(I<$new_mode>)
+=item change_station(I<$friend>)
 
-  $response = $lastfm->change_station($new_mode);
+  $response = $lastfm->change_station($friend);
 
-Changes the station of your stream. I<$new_mode> can be one of 'I<personal>', 'I<profile>' or 'I<random>'. Making a donation to Last.FM is required to change the mode to 'personal'. See L<http://www.last.fm/tutorial.php> for more details.
+Changes the station of your stream to C<$friend>'s one.
 
-I<$response> you get after changing station will be whether 'OK' or 'FAILED'.
+I<$response> which you'll get after issuing a command will be either
+'OK' or 'FAILED' as a string.
 
 =item ua
 
   $lastfm->ua->timeout(10);
 
-Returns a LWP::UserAgent object. You can set some values to change its propaties. See the documentation of L<LWP::UserAgent> for more details.
+Returns the LWP::UserAgent object which is internally used by
+C<$lastfm> object. You can set some values to customize its
+behavior. See the documentation of L<LWP::UserAgent> for more details.
 
 =back
-
-=head1 CAVEAT
-
-WebService::LastFM is in beta version. Besides, Last.FM Webservices API's spec haven't fixed yet (its status is now in B<EXPERIMENTAL>), so the interface it provides may be changed later. Then you must notice that the endpoint's host of LastFM Webservices API will be changed to 'ws.audioscrobbler.com' from 'wsdev.audioscrobbler.com' after its starting officially.
-
-See L<http://www.audioscrobbler.com/forum/14868> for the newest information of Last.FM Webservices.
 
 =head1 SEE ALSO
 
@@ -237,7 +244,7 @@ See L<http://www.audioscrobbler.com/forum/14868> for the newest information of L
 
 L<http://www.last.fm/>
 
-=item * Last.FM Stream API's documentation
+=item * Last.FM Stream API documentation
 
 L<http://www.audioscrobbler.com/development/lastfm-ws.php>
 
@@ -251,8 +258,9 @@ Kentaro Kuribayashi, E<lt>kentarok@gmail.comE<gt>
 
 =head1 COPYRIGHT AND LICENSE
 
-Copyright (C) 2005 by Kentaro Kuribayashi
+Copyright (C) 2005 - 2008 by Kentaro Kuribayashi
 
-This library is free software; you can redistribute it and/or modify it under the same terms as Perl itself.
+This library is free software; you can redistribute it and/or modify
+it under the same terms as Perl itself.
 
 =cut
