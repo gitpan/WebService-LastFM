@@ -1,5 +1,9 @@
 Revision history for Perl extension WebService::LastFM.
 
+0.05  Thu May 29 2008
+        - Added change_tag() method.
+          (Thanks to Renan Rangel)
+
 0.04  Fri Jan 11 2008
         - Fixed codes to be correspondent to the new spec of the API.
           (Thanks to David Leadbeater)

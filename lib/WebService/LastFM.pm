@@ -11,7 +11,7 @@ use HTTP::Request::Common qw(POST GET);
 use WebService::LastFM::Session;
 use WebService::LastFM::NowPlaying;
 
-our $VERSION = '0.04';
+our $VERSION = '0.05';
 
 sub new {
     my ($class, %args) = @_;
@@ -78,6 +78,20 @@ sub change_station {
               '?session='.$self->{session}.
               '&url='    ."user/$user/personal";
 
+    my $response = $self->_get_response(GET $url);
+    return $response->{response};
+}
+
+sub change_tag {
+    my ($self, $tag) = @_;
+    $self->_die('tag not passed') unless $tag;
+    $tag =~ s/ /\%20/;
+        
+    my $url = 'http://ws.audioscrobbler.com/radio/adjust.php'.
+              '?session='.$self->{session}.
+              '&url='    ."globaltags/$tag";
+              
+    print "$url\n";
     my $response = $self->_get_response(GET $url);
     return $response->{response};
 }
@@ -224,6 +238,15 @@ I<$response> which you'll get after issuing a command will be either
 Changes the station of your stream to C<$friend>'s one.
 
 I<$response> which you'll get after issuing a command will be either
+'OK' or 'FAILED' as a string.
+
+=item change_tag(I<$tag>)
+
+  $response = $lastfm->change_tag($tag);
+
+Change the station of your stream to play music tagged with C<$tag>.
+
+$response which you'll get after issuing a command will be either
 'OK' or 'FAILED' as a string.
 
 =item ua
