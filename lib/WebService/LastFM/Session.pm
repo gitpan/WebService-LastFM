@@ -5,15 +5,17 @@ use warnings;
 
 use base qw(Class::Accessor);
 
-our $VERSION = '0.01';
+our $VERSION = '0.06';
 
-__PACKAGE__->mk_accessors(qw(
-    session
-    stream_url
-));
+__PACKAGE__->mk_accessors(
+    qw(
+        session
+        stream_url
+        )
+);
 
 sub new {
-    my ($class, $args) = @_;
+    my ( $class, $args ) = @_;
     bless $args, $class;
 }
 

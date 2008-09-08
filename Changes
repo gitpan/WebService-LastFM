@@ -1,5 +1,8 @@
 Revision history for Perl extension WebService::LastFM.
 
+0.06  Thu Sept 08 2008
+        - Strictly a version change for ownership switch to Christian Brink
+          
 0.05  Thu May 29 2008
         - Added change_tag() method.
           (Thanks to Renan Rangel)

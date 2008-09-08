@@ -1,4 +1,4 @@
-WebService-LastFM version 0.03
+WebService-LastFM version 0.06
 ==============================
 
 DESCRIPTION
@@ -8,9 +8,9 @@ service API. It currently supports Last.FM Stream API.
 
 CAVEAT
 
-WebServices::LastFM is now obsolete and doesn't cover all over the API
-which Last.fm offers. If you'd like to take over it from me to work on
-implementing, please give me a line, I'll let you have it.
+WebServices::LastFM 0.06 is now obsolete and doesn't cover all over the API
+which Last.fm offers. It it currently being wored on to cover the newest
+Last.fm API. A working 0.07 will be released shortly
 
 INSTALLATION
 
@@ -33,7 +33,7 @@ COPYRIGHT AND LICENCE
 
 Put the correct copyright and licence information here.
 
-Copyright (C) 2005 - 2008 by Kentaro Kuribayashi
+Copyright (C) 2005 - 2008 by Christian Brink and Kentaro Kuribayashi
 
 This library is free software; you can redistribute it and/or modify
 it under the same terms as Perl itself.

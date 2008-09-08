@@ -3,7 +3,7 @@ package WebService::LastFM;
 use strict;
 use warnings;
 
-use Carp ();
+use Carp        ();
 use Digest::MD5 ();
 use LWP::UserAgent;
 use HTTP::Request::Common qw(POST GET);
@@ -11,10 +11,10 @@ use HTTP::Request::Common qw(POST GET);
 use WebService::LastFM::Session;
 use WebService::LastFM::NowPlaying;
 
-our $VERSION = '0.05';
+our $VERSION = '0.06';
 
 sub new {
-    my ($class, %args) = @_;
+    my ( $class, %args ) = @_;
     my $self = bless {}, $class;
 
     $self->_die('Username and password are required')
@@ -22,9 +22,7 @@ sub new {
 
     $self->{username} = $args{username};
     $self->{password} = $args{password};
-    $self->{ua} = LWP::UserAgent->new(
-        agent   => "WebService::LastFM/$VERSION",
-    );
+    $self->{ua}       = LWP::UserAgent->new( agent => "WebService::LastFM/$VERSION", );
 
     return $self;
 }
@@ -34,97 +32,92 @@ sub ua { $_[0]->{ua} }
 sub get_session {
     my $self = shift;
 
-    my $url = 'http://ws.audioscrobbler.com/radio/handshake.php'.
-              '?username='   .$self->{username}.
-              '&version= '   ."1.1.1".
-              '&platform= '  ."linux".
-              '&passwordmd5='.Digest::MD5::md5_hex($self->{password});
+    my $url
+        = 'http://ws.audioscrobbler.com/radio/handshake.php'
+        . '?username='
+        . $self->{username}
+        . '&version= ' . "1.1.1"
+        . '&platform= ' . "linux"
+        . '&passwordmd5='
+        . Digest::MD5::md5_hex( $self->{password} );
 
-    my $response = $self->_get_response(GET $url);
+    my $response = $self->_get_response( GET $url);
 
     $self->_die('Wrong params passed')
-        if !(keys %$response) || $response->{session} eq 'FAILED';
+        if !( keys %$response ) || $response->{session} eq 'FAILED';
 
-    %$self = (%$self, %$response);
+    %$self = ( %$self, %$response );
     return WebService::LastFM::Session->new($response);
 }
 
 sub get_nowplaying {
     my $self = shift;
-    my $url = 'http://ws.audioscrobbler.com/radio/np.php'
-        .'?session='.$self->{session};
+    my $url  = 'http://ws.audioscrobbler.com/radio/np.php' . '?session=' . $self->{session};
 
-    my $response = $self->_get_response(GET $url);
+    my $response = $self->_get_response( GET $url);
     return WebService::LastFM::NowPlaying->new($response);
 }
 
 sub send_command {
-    my ($self, $command) = @_;
+    my ( $self, $command ) = @_;
     $self->_die('Command not passed') unless $command;
 
-    my $url = 'http://ws.audioscrobbler.com/radio/control.php'.
-              '?session='.$self->{session}.
-              '&command='.$command;
+    my $url = 'http://ws.audioscrobbler.com/radio/control.php' . '?session=' . $self->{session} . '&command=' . $command;
 
-    my $response = $self->_get_response(GET $url);
+    my $response = $self->_get_response( GET $url);
     return $response->{response};
 }
 
 sub change_station {
-    my ($self, $user) = @_;
+    my ( $self, $user ) = @_;
     $self->_die('URL not passed') unless $user;
 
-    my $url = 'http://ws.audioscrobbler.com/radio/adjust.php'.
-              '?session='.$self->{session}.
-              '&url='    ."user/$user/personal";
+    my $url = 'http://ws.audioscrobbler.com/radio/adjust.php' . '?session=' . $self->{session} . '&url=' . "user/$user/personal";
 
-    my $response = $self->_get_response(GET $url);
+    my $response = $self->_get_response( GET $url);
     return $response->{response};
 }
 
 sub change_tag {
-    my ($self, $tag) = @_;
+    my ( $self, $tag ) = @_;
     $self->_die('tag not passed') unless $tag;
     $tag =~ s/ /\%20/;
-        
-    my $url = 'http://ws.audioscrobbler.com/radio/adjust.php'.
-              '?session='.$self->{session}.
-              '&url='    ."globaltags/$tag";
-              
+
+    my $url = 'http://ws.audioscrobbler.com/radio/adjust.php' . '?session=' . $self->{session} . '&url=' . "globaltags/$tag";
+
     print "$url\n";
-    my $response = $self->_get_response(GET $url);
+    my $response = $self->_get_response( GET $url);
     return $response->{response};
 }
 
 sub _get_response {
-    my ($self, $request) = @_;
+    my ( $self, $request ) = @_;
     my $content  = $self->_do_request($request);
     my $response = $self->_parse_response($content);
     return $response;
 }
 
 sub _parse_response {
-    my ($self, $content) = @_;
+    my ( $self, $content ) = @_;
     my $response = {};
 
-    $response->{$1} = $2
-        while ($content =~ s/^(.+?) *= *(.*)$//m);
+    $response->{$1} = $2 while ( $content =~ s/^(.+?) *= *(.*)$//m );
 
     return $response;
 }
 
 sub _do_request {
-    my ($self, $request) = @_;
+    my ( $self, $request ) = @_;
     my $response = $self->ua->simple_request($request);
 
-    $self->_die('Request failed: '.$response->message)
+    $self->_die( 'Request failed: ' . $response->message )
         unless $response->is_success;
 
     return $response->content;
 }
 
 sub _die {
-    my ($self, $message) = @_;
+    my ( $self, $message ) = @_;
     Carp::croak($message);
 }
 
