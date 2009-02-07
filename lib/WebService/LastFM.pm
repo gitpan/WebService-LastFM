@@ -7,11 +7,14 @@ use Carp        ();
 use Digest::MD5 ();
 use LWP::UserAgent;
 use HTTP::Request::Common qw(POST GET);
+use XML::Simple;
 
 use WebService::LastFM::Session;
 use WebService::LastFM::NowPlaying;
+use WebService::LastFM::Track;
+use WebService::LastFM::Playlist;
 
-our $VERSION = '0.06';
+our $VERSION = '0.07';
 
 sub new {
     my ( $class, %args ) = @_;
@@ -50,6 +53,32 @@ sub get_session {
     return WebService::LastFM::Session->new($response);
 }
 
+sub get_new_playlist {
+  my $self     = shift;
+  my $xspf_xml = $self->_get_new_xspf();
+  my $xml      = XML::Simple->new();
+  my $xspf     = $xml->XMLin($xspf_xml);
+
+  my @playlist;
+  foreach my $track_id ( keys %{ $xspf->{trackList}{track} }  ) {
+    push @playlist, WebService::LastFM::Track->new( $xspf->{trackList}{track}{$track_id} )
+  }
+  my $playlist = WebService::LastFM::Playlist->new({ tracks => \@playlist });
+  return $playlist;
+
+}
+
+sub _get_new_xspf {
+  my $self = shift;
+  my $session_key = $self->{session} or $self->_die('Must have a session to get xspf');
+  my $url  = 'http://ws.audioscrobbler.com/radio/xspf.php' .
+    '?sk=' . $self->{session} . '&discovery=0&desktop=0';
+
+  my $content =  $self->_do_request( GET $url );
+  return $content;
+}
+
+
 sub get_nowplaying {
     my $self = shift;
     my $url  = 'http://ws.audioscrobbler.com/radio/np.php' . '?session=' . $self->{session};
@@ -85,7 +114,6 @@ sub change_tag {
 
     my $url = 'http://ws.audioscrobbler.com/radio/adjust.php' . '?session=' . $self->{session} . '&url=' . "globaltags/$tag";
 
-    print "$url\n";
     my $response = $self->_get_response( GET $url);
     return $response->{response};
 }
@@ -133,58 +161,40 @@ WebService::LastFM - Simple interface to Last.FM Web service API
 
   use WebService::LastFM;
 
+
   my $lastfm = WebService::LastFM->new(
-      username => $username,
-      password => $password,
+      username => $config{username},
+      password => $config{password},
   );
-
-  # get a sessoin key and stream URL to identify your stream
-  my $stream_info = $lastfm->get_session;
+  my $stream_info = $lastfm->get_session  || die "Can't get Session\n";
   my $session_key = $stream_info->session;
-  my $stream_url  = $stream_info->stream_url;
 
-  # get the song information you are now listening
-  my $nowplaying = $lastfm->get_nowplaying;
+  $lastfm->change_tag( 'ska+punk' );
 
-  for (qw(
-      price
-      shopname
-      clickthrulink
-      streaming
-      discovery
-      station
-      artist
-      artist_url
-      track
-      track_url
-      album
-      album_url
-      albumcover_small
-      albumcover_medium
-      albumcover_large
-      trackduration
-      radiomode
-      recordtoprofile
-  )){
-      print $nowplaying->$_;
-  }
+  while (1) {
 
-  # send a command
-  $lastfm->send_command($command);
+       my $playlist = $lastfm->get_new_playlist();
 
-  # change the station
-  $lastfm->change_station($friend);
+       while ( my $track = $playlist->get_next_track() ) {
+
+           print "Playing '".$track->title."' by ".$track->creator."\n";
+
+           my @cmd = ( 'mpg123' , $track->location() );
+           system( @cmd );
+
+       }
+   }
+
 
 =head1 DESCRIPTION
 
 WebService::LastFM provides you a simple interface to Last.FM Web
-service API. It currently supports Last.FM Stream API.
+service API. It currently supports Last.FM Stream API 1.2.
 
 =head1 CAVEAT
 
-WebServices::LastFM is now obsolete and doesn't cover all over the API
-which Last.fm offers. If you'd like to take over it from me to work on
-implementing, please give me a line, I'll let you have it.
+This is NOT A BACKWARDS COMPATIBLE update. LastFM has changed their
+API enough to warrant an interface change.
 
 =head1 METHODS
 
@@ -205,6 +215,27 @@ Creates and returns a new WebService::LastFM object.
 
 Returns a session key and stream URL as a WebService::LastFM::Session
 object.
+
+=item get_new_playlist()
+
+  $stream_info = $lastfm->get_new_playlist();
+
+Returns a WebService::LastFM::Playlist that contains a list of tracks
+based on the current station. You can/should use the get_next_track
+method to retrieve the WS:LFM:Track object. Once the playlist is
+depleted (right now 5 tracks) just grab a new playlist.
+
+       my $playlist = $lastfm->get_new_playlist();
+
+       while ( my $track = $playlist->get_next_track() ) {
+
+           print "Playing '".$track->title."' by ".$track->creator."\n";
+
+           my @cmd = ( 'mpg123' , $track->location() );
+           system( @cmd );
+
+       }
+
 
 =item get_nowplaying()
 
@@ -270,9 +301,11 @@ L<http://www.audioscrobbler.com/development/lastfm-ws.php>
 
 =head1 AUTHOR
 
-Kentaro Kuribayashi, E<lt>kentarok@gmail.comE<gt>
+Christian Brink, E<lt>grep_pdx@gmail.comE<gt>
 
 =head1 COPYRIGHT AND LICENSE
+
+Copyright (C) 2008 - 2009 by Christian Brink
 
 Copyright (C) 2005 - 2008 by Kentaro Kuribayashi
 

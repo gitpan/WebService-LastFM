@@ -7,5 +7,6 @@ WriteMakefile(
         LWP             => 0,
         Digest::MD5     => 0,
         Class::Accessor => 0,
+        XML::Simple     => 0,
     }
 );
